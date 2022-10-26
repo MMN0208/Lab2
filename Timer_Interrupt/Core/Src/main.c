@@ -38,6 +38,8 @@
 // Number of 7SEG LEDs
 #define MAX_LED 			4
 
+#define MAX_LED_MATRIX 		8
+
 // Seven segment
 #define NUM_OF_7SEG_VALUES	10
 
@@ -79,13 +81,74 @@ const uint8_t sevenSegEnable[MAX_LED] = {
 	0x07  // EN3
 };
 
+const uint8_t matrixColEnable[MAX_LED_MATRIX] = {
+	0xfe,
+	0xfd,
+	0xfb,
+	0xf7,
+	0xef,
+	0xdf,
+	0xbf,
+	0x7f
+};
+
+GPIO_TypeDef * LEDMatrixRowPort[MAX_LED_MATRIX] = {
+	ROW0_GPIO_Port,
+	ROW1_GPIO_Port,
+	ROW2_GPIO_Port,
+	ROW3_GPIO_Port,
+	ROW4_GPIO_Port,
+	ROW5_GPIO_Port,
+	ROW6_GPIO_Port,
+	ROW7_GPIO_Port
+};
+
+const uint16_t LEDMatrixRowPin[MAX_LED_MATRIX] = {
+	ROW0_Pin,
+	ROW1_Pin,
+	ROW2_Pin,
+	ROW3_Pin,
+	ROW4_Pin,
+	ROW5_Pin,
+	ROW6_Pin,
+	ROW7_Pin
+};
+
+GPIO_TypeDef * LEDMatrixColPort[MAX_LED_MATRIX] = {
+	ENM0_GPIO_Port,
+	ENM1_GPIO_Port,
+	ENM2_GPIO_Port,
+	ENM3_GPIO_Port,
+	ENM4_GPIO_Port,
+	ENM5_GPIO_Port,
+	ENM6_GPIO_Port,
+	ENM7_GPIO_Port
+};
+
+const uint16_t LEDMatrixColPin[MAX_LED_MATRIX] = {
+	ENM0_Pin,
+	ENM1_Pin,
+	ENM2_Pin,
+	ENM3_Pin,
+	ENM4_Pin,
+	ENM5_Pin,
+	ENM6_Pin,
+	ENM7_Pin
+};
+
 int led_buffer[MAX_LED] = {2, 0, 0, 2};
 
+uint8_t matrix_buffer[MAX_LED_MATRIX] = {0xff, 0x80, 0x77, 0x77, 0x77, 0x77, 0x80, 0xff};
+
 static int led_index = 0;
+static int led_matrix_index = 0;
 static int second = 20, minute = 32, hour = 14;
+// for exercise 1 to 3, switchPeriod = 500ms
 static int switchPeriod = 250; // in ms
 static int dotPeriod = 500; // in ms
 static int oneSecond = 1000; // in ms
+static int matrixScan = 50; // in ms
+static int animationPeriod = 1000; // in ms
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -96,7 +159,11 @@ void toggleDot(void);
 void display7SEG(int num);
 void enable7SEG(int num);
 void update7SEG(int index);
+void displayLEDMatrixCol(int num);
+void enableLEDMatrixCol(int num);
+void updateLEDMatrix(int index);
 void updateClockBuffer();
+void updateAnimationBuffer();
 void exercise1(void);
 void exercise2(void);
 /* USER CODE END PFP */
@@ -108,6 +175,8 @@ void setupDelay(void) {
 		switchPeriod /= DELAY_TIME;
 		dotPeriod /= DELAY_TIME;
 		oneSecond /= DELAY_TIME;
+		matrixScan /= DELAY_TIME;
+		animationPeriod /= DELAY_TIME;
 	}
 }
 
@@ -156,11 +225,71 @@ void update7SEG(int index) {
 	}
 }
 
+void displayLEDMatrixCol(int num) {
+	for(int i = 0; i < MAX_LED_MATRIX; i++) {
+		HAL_GPIO_WritePin(LEDMatrixRowPort[i], LEDMatrixRowPin[i], (matrix_buffer[num] >> i) & 0x01);
+	}
+}
+
+void enableLEDMatrixCol(int num) {
+	for(int i = 0; i < MAX_LED_MATRIX; i++) {
+		HAL_GPIO_WritePin(LEDMatrixColPort[i], LEDMatrixColPin[i], (matrixColEnable[num] >> i) & 0x01);
+	}
+}
+
+void updateLEDMatrix(int index) {
+	switch (index){
+		case 0:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 1:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 2:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 3:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 4:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 5:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 6:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		case 7:
+			enableLEDMatrixCol(index);
+			displayLEDMatrixCol(index);
+			break;
+		default:
+			break;
+	}
+}
+
 void updateClockBuffer(void) {
 	led_buffer[0] = hour / 10;
 	led_buffer[1] = hour % 10;
 	led_buffer[2] = minute / 10;
 	led_buffer[3] = minute % 10;
+}
+
+
+void updateAnimationBuffer() {
+	uint8_t temp = matrix_buffer[0];
+	for(int i = 0; i < MAX_LED_MATRIX - 1; i++) {
+		matrix_buffer[i] = matrix_buffer[i + 1];
+	}
+	matrix_buffer[MAX_LED_MATRIX - 1] = temp;
 }
 
 void exercise1(void) {
@@ -223,9 +352,8 @@ int main(void)
 
   /* USER CODE BEGIN Init */
   setupDelay();
-  setTimer1(2);
-  setTimer2(3);
-  setTimer3(1);
+  setTimer1(1);
+  setTimer2(animationPeriod);
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -247,11 +375,22 @@ int main(void)
   while (1)
   {
     if(timer1_flag == 1) {
+    	setTimer1(matrixScan);
+    	updateLEDMatrix(led_matrix_index++);
+    	led_matrix_index %= MAX_LED_MATRIX;
+    }
+
+    if(timer2_flag == 1) {
+    	setTimer2(animationPeriod);
+    	updateAnimationBuffer();
+    }
+
+    /* Exercise 3 to 8
+    if(timer1_flag == 1) {
     	setTimer1(switchPeriod);
     	update7SEG(led_index++);
     	led_index %= MAX_LED;
     }
-
     if(timer2_flag == 1) {
     	setTimer2(dotPeriod);
     	toggleDot();
@@ -271,6 +410,7 @@ int main(void)
     	hour %= 24;
     	updateClockBuffer();
     }
+    */
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
