@@ -142,7 +142,7 @@ uint8_t matrix_buffer[MAX_LED_MATRIX] = {0xff, 0x80, 0x77, 0x77, 0x77, 0x77, 0x8
 
 static int led_index = 0;
 static int led_matrix_index = 0;
-//static int second = 20, minute = 32, hour = 14;
+static int second = 20, minute = 32, hour = 14;
 // for exercise 1 to 3, switchPeriod = 500ms
 static int switchPeriod = 250; // in ms
 static int dotPeriod = 500; // in ms
